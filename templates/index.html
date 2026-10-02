@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps Log Analyzer</title>
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>DevOps Log Analyzer</h1>
+        <p>Upload, analyze, and investigate application logs.</p>
+    </header>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="message">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <section class="stats">
+        <div class="stat-card">
+            <span>Total Reports</span>
+            <h2>{{ stats.total_reports }}</h2>
+        </div>
+        <div class="stat-card">
+            <span>Total Log Lines</span>
+            <h2>{{ stats.total_lines }}</h2>
+        </div>
+        <div class="stat-card error">
+            <span>Errors</span>
+            <h2>{{ stats.errors }}</h2>
+        </div>
+        <div class="stat-card warning">
+            <span>Warnings</span>
+            <h2>{{ stats.warnings }}</h2>
+        </div>
+        <div class="stat-card critical">
+            <span>Critical</span>
+            <h2>{{ stats.critical }}</h2>
+        </div>
+    </section>
+
+    <section class="panel">
+        <h2>Upload Log File</h2>
+        <form action="{{ url_for('upload') }}"
+              method="POST" enctype="multipart/form-data">
+            <input type="file" name="file" accept=".log,.txt" required>
+            <button type="submit">Analyze Logs</button>
+        </form>
+        <small>Supported formats: .log and .txt. Maximum size: 5 MB.</small>
+    </section>
+
+    <section class="panel">
+        <h2>Search Log Entries</h2>
+        <form action="{{ url_for('index') }}" method="GET" class="search-form">
+            <input type="text" name="search"
+                   placeholder="Search by keyword..."
+                   value="{{ search }}">
+            <select name="severity">
+                <option value="">All Severities</option>
+                {% for level in ["CRITICAL", "ERROR", "WARNING",
+                                 "INFO", "DEBUG", "OTHER"] %}
+                    <option value="{{ level }}"
+                        {% if severity == level %}selected{% endif %}>
+                        {{ level }}
+                    </option>
+                {% endfor %}
+            </select>
+            <button type="submit">Search</button>
+            <a class="reset" href="{{ url_for('index') }}">Reset</a>
+        </form>
+    </section>
+
+    <section class="panel">
+        <h2>Log Entries</h2>
+        {% if entries %}
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Severity</th>
+                        <th>Source</th>
+                        <th>Message</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for entry in entries %}
+                        <tr>
+                            <td>
+                                <span class="tag {{ entry.severity|lower }}">
+                                    {{ entry.severity }}
+                                </span>
+                            </td>
+                            <td>{{ entry.filename if entry.filename is defined
+                                   else "Report entry" }}</td>
+                            <td class="log-message">{{ entry.message }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="empty">No log entries found. Upload a file to begin.</p>
+        {% endif %}
+    </section>
+
+    <section class="panel">
+        <h2>Previous Reports</h2>
+        {% if reports %}
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>File</th>
+                        <th>Lines</th>
+                        <th>Errors</th>
+                        <th>Warnings</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for report in reports %}
+                        <tr>
+                            <td>{{ report.filename }}</td>
+                            <td>{{ report.total_lines }}</td>
+                            <td>{{ report.errors }}</td>
+                            <td>{{ report.warnings }}</td>
+                            <td>{{ report.created_at }}</td>
+                            <td class="actions">
+                                <a href="{{ url_for('report',
+                                                   report_id=report.id) }}">
+                                    View
+                                </a>
+                                <form action="{{ url_for('delete_report',
+                                                   report_id=report.id) }}"
+                                      method="POST">
+                                    <button class="delete" type="submit">
+                                        Delete
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="empty">No reports available yet.</p>
+        {% endif %}
+    </section>
+</div>
+</body>
+</html>
